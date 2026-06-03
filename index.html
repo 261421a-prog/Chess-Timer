@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #eee;
+        }
+        .container {
+            background: #16213e;
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            width: 420px;
+            max-width: 95vw;
+        }
+        h1 {
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            color: #e0e0e0;
+        }
+        .board {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px #2a2a4a;
+        }
+        .player {
+            padding: 1.5rem 1.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+            cursor: pointer;
+            user-select: none;
+        }
+        .player.white {
+            background: #2d2d4a;
+        }
+        .player.black {
+            background: #1f1f38;
+        }
+        .player.active {
+            background: #2a5c3a;
+            box-shadow: inset 0 0 0 2px #4caf50;
+        }
+        .player.active .timer-value {
+            color: #a5d6a7;
+        }
+        .player.warning .timer-value {
+            color: #ffa726;
+        }
+        .player.expired .timer-value {
+            color: #ef5350;
+        }
+        .player-label {
+            font-size: 1.1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .player-label .piece {
+            font-size: 1.6rem;
+        }
+        .timer-value {
+            font-size: 2.4rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+            font-family: 'Courier New', monospace;
+            transition: color 0.2s;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .controls button {
+            background: #0f3460;
+            border: none;
+            color: #eee;
+            padding: 0.7rem 1.3rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            flex: 1;
+            min-width: 80px;
+        }
+        .controls button:hover {
+            background: #1a4a7a;
+        }
+        .controls button:active {
+            transform: scale(0.96);
+        }
+        .controls button.primary {
+            background: #4caf50;
+            color: #fff;
+        }
+        .controls button.primary:hover {
+            background: #66bb6a;
+        }
+        .controls button.danger {
+            background: #c62828;
+        }
+        .controls button.danger:hover {
+            background: #e53935;
+        }
+        .controls button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .settings {
+            display: flex;
+            gap: 12px;
+            margin-top: 1.2rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .settings label {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .settings select,
+        .settings input {
+            background: #0f3460;
+            color: #eee;
+            border: 1px solid #2a4a7a;
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            width: 70px;
+            text-align: center;
+        }
+        .settings input[type="number"] {
+            width: 60px;
+        }
+        .status {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #888;
+            min-height: 1.4em;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 1.2rem;
+            font-size: 0.75rem;
+            color: #555;
+        }
+        .footer a {
+            color: #789;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            color: #9ab;
+        }
+        @media (max-width: 440px) {
+            .container { padding: 1.2rem; }
+            .timer-value { font-size: 1.8rem; }
+            .player { padding: 1rem 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>♟ CHESS TIMER</h1>
+
+    <div class="board" id="board">
+        <div class="player white" id="player-white" data-side="white">
+            <span class="player-label">
+                <span class="piece">♔</span> White
+            </span>
+            <span class="timer-value" id="timer-white">10:00</span>
+        </div>
+        <div class="player black" id="player-black" data-side="black">
+            <span class="player-label">
+                <span class="piece">♚</span> Black
+            </span>
+            <span class="timer-value" id="timer-black">10:00</span>
+        </div>
+    </div>
+
+    <div class="settings">
+        <label>
+            Preset
+            <select id="preset-select">
+                <option value="600">10 min</option>
+                <option value="300">5 min</option>
+                <option value="180">3 min</option>
+                <option value="120">2 min</option>
+                <option value="60">1 min</option>
+                <option value="custom">Custom</option>
+            </select>
+        </label>
+        <label>
+            + Increment (s)
+            <input type="number" id="increment-input" value="0" min="0" max="60" />
+        </label>
+    </div>
+
+    <div class="controls">
+        <button class="primary" id="btn-start">▶ Start</button>
+        <button id="btn-pause" disabled>⏸ Pause</button>
+        <button class="danger" id="btn-reset">↺ Reset</button>
+    </div>
+
+    <div class="status" id="status">Press Start to begin</div>
+    <div class="footer">
+        <a href="https://github.com/your-username/chess-timer" target="_blank">View on GitHub</a>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // --- DOM refs ---
+        const whiteTimerEl  = document.getElementById('timer-white');
+        const blackTimerEl  = document.getElementById('timer-black');
+        const whitePlayerEl = document.getElementById('player-white');
+        const blackPlayerEl = document.getElementById('player-black');
+        const statusEl      = document.getElementById('status');
+        const btnStart      = document.getElementById('btn-start');
+        const btnPause      = document.getElementById('btn-pause');
+        const btnReset      = document.getElementById('btn-reset');
+        const presetSelect  = document.getElementById('preset-select');
+        const incrementInput= document.getElementById('increment-input');
+
+        // --- State ---
+        let baseTime       = 600;       // seconds
+        let increment      = 0;         // seconds
+        let whiteTime      = baseTime;
+        let blackTime      = baseTime;
+        let active         = null;      // 'white' | 'black' | null
+        let running        = false;
+        let intervalId     = null;
+        let gameOver       = false;
+
+        // --- Helpers ---
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            whiteTimerEl.textContent = formatTime(Math.max(0, whiteTime));
+            blackTimerEl.textContent = formatTime(Math.max(0, blackTime));
+
+            // Warning when <= 60s
+            whitePlayerEl.classList.toggle('warning', whiteTime > 0 && whiteTime <= 60);
+            blackPlayerEl.classList.toggle('warning', blackTime > 0 && blackTime <= 60);
+
+            // Expired
+            whitePlayerEl.classList.toggle('expired', whiteTime <= 0);
+            blackPlayerEl.classList.toggle('expired', blackTime <= 0);
+
+            // Active highlight
+            whitePlayerEl.classList.toggle('active', active === 'white');
+            blackPlayerEl.classList.toggle('active', active === 'black');
+        }
+
+        function clearTimer() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        }
+
+        function stopGame() {
+            clearTimer();
+            running = false;
+            active = null;
+            btnStart.disabled = false;
+            btnPause.disabled = true;
+            updateDisplay();
+            statusEl.textContent = gameOver ? 'Game over' : 'Stopped';
+        }
+
+        function checkGameOver() {
+            if (whiteTime <= 0) {
+                whiteTime = 0;
+                gameOver = true;
+                statusEl.textContent = '⏰ Black wins — White ran out of time!';
+                stopGame();
+                return true;
+            }
+            if (blackTime <= 0) {
+                blackTime = 0;
+                gameOver = true;
+                statusEl.textContent = '⏰ White wins — Black ran out of time!';
+                stopGame();
+                return true;
+            }
+            return false;
+        }
+
+        function tick() {
+            if (!running || !active) return;
+
+            if (active === 'white') {
+                whiteTime = Math.max(0, whiteTime - 1);
+            } else {
+                blackTime = Math.max(0, blackTime - 1);
+            }
+            updateDisplay();
+
+            if (checkGameOver()) return;
+        }
+
+        function switchTurn(side) {
+            if (!running || gameOver) return;
+            if (active !== null && side === active) return; // clicking same player
+
+            // Apply increment to the player who just finished their turn
+            if (active === 'white') {
+                whiteTime += increment;
+            } else if (active === 'black') {
+                blackTime += increment;
+            }
+
+            active = side;
+            updateDisplay();
+            statusEl.textContent = `${side.charAt(0).toUpperCase() + side.slice(1)}'s turn`;
+
+            // If the switched-to player has no time, they lose immediately
+            if ((active === 'white' && whiteTime <= 0) || (active === 'black' && blackTime <= 0)) {
+                checkGameOver();
+            }
+        }
+
+        // --- Event handlers ---
+        function startGame() {
+            if (running) return;
+
+            // Read settings
+            const presetVal = presetSelect.value;
+            if (presetVal === 'custom') {
+                const custom = prompt('Enter base time in seconds (e.g. 600 for 10 min):', '600');
+                const parsed = parseInt(custom, 10);
+                if (isNaN(parsed) || parsed < 5) {
+                    statusEl.textContent = 'Invalid custom time. Using 10 min.';
+                    baseTime = 600;
+                } else {
+                    baseTime = parsed;
+                }
+            } else {
+                baseTime = parseInt(presetVal, 10);
+            }
+            increment = parseInt(incrementInput.value, 10) || 0;
+
+            // Reset times
+            whiteTime = baseTime;
+            blackTime = baseTime;
+            gameOver = false;
+            active = 'white';
+            running = true;
+            btnStart.disabled = true;
+            btnPause.disabled = false;
+
+            clearTimer();
+            intervalId = setInterval(tick, 1000);
+            updateDisplay();
+            statusEl.textContent = "White's turn — tap your side when done";
+        }
+
+        function pauseGame() {
+            if (!running) return;
+            clearTimer();
+            running = false;
+            btnStart.disabled = false;
+            btnPause.disabled = true;
+            statusEl.textContent = '⏸ Paused';
+        }
+
+        function resetGame() {
+            clearTimer();
+            // Restore from current settings
+            const presetVal = presetSelect.value;
+            baseTime = presetVal === 'custom' ? 600 : parseInt(presetVal, 10);
+            increment = parseInt(incrementInput.value, 10) || 0;
+            whiteTime = baseTime;
+            blackTime = baseTime;
+            active = null;
+            running = false;
+            gameOver = false;
+            btnStart.disabled = false;
+            btnPause.disabled = true;
+            whitePlayerEl.classList.remove('active', 'warning', 'expired');
+            blackPlayerEl.classList.remove('active', 'warning', 'expired');
+            updateDisplay();
+            statusEl.textContent = 'Reset — press Start';
+        }
+
+        // --- Click players to switch turn ---
+        whitePlayerEl.addEventListener('click', () => {
+            if (!running || gameOver) return;
+            // White clicked => it becomes white's turn (switching from black)
+            if (active === 'black') switchTurn('white');
+        });
+
+        blackPlayerEl.addEventListener('click', () => {
+            if (!running || gameOver) return;
+            if (active === 'white') switchTurn('black');
+        });
+
+        // Keyboard support: Space to start/pause, W/B for turns
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Space') {
+                e.preventDefault();
+                if (running) {
+                    pauseGame();
+                } else if (!gameOver) {
+                    startGame();
+                }
+            }
+            if (e.key === 'w' || e.key === 'W') {
+                if (running && active === 'black') switchTurn('white');
+            }
+            if (e.key === 'b' || e.key === 'B') {
+                if (running && active === 'white') switchTurn('black');
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                resetGame();
+            }
+        });
+
+        // --- Buttons ---
+        btnStart.addEventListener('click', startGame);
+        btnPause.addEventListener('click', pauseGame);
+        btnReset.addEventListener('click', resetGame);
+
+        // Preset change updates displayed time if not running
+        presetSelect.addEventListener('change', () => {
+            if (running || gameOver) return;
+            const val = presetSelect.value;
+            if (val !== 'custom') {
+                baseTime = parseInt(val, 10);
+                whiteTime = baseTime;
+                blackTime = baseTime;
+                updateDisplay();
+                statusEl.textContent = `${baseTime / 60} min selected`;
+            } else {
+                statusEl.textContent = 'Enter custom time on Start';
+            }
+        });
+
+        // --- Init ---
+        updateDisplay();
+        statusEl.textContent = 'Ready — press Start or Space';
+    })();
+</script>
+
+</body>
+</html>
